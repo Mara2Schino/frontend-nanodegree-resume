@@ -13,7 +13,7 @@ var bio = { //Object
 	},
 	"welcomeMessage" : "Aloha!", 
 	"skills" : ["awesomeness ", "programming ", "teaching ", "Python "],
-	"bioPic" : "images/fry.jpg"
+	"bioPic" : "images/puppy.jpg"
 };
 
 //Appending Bio information on website

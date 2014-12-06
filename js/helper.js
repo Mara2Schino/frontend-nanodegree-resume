@@ -13,16 +13,16 @@ These are HTML strings. As part of the course, you'll be using JavaScript functi
 replace the %data% placeholder text you see in them.
 */
 var HTMLheaderName = "<h1 id='name'>%data%</h1>";
-var HTMLheaderRole = "<span>%data%</span><hr/>";
+var HTMLheaderRole = "<span>%data%</span><hr/>"; /* white hr ?*/
 
 
-var HTMLcontactGeneric = "<li class='flex-item'><span class='orange-text'>%contact%</span><span class='white-text'>%data%</span></li>";
-var HTMLmobile = "<li class='flex-item'><span class='orange-text'>mobile</span><span class='white-text'>%data%</span></li>";
-var HTMLemail = "<li class='flex-item'><span class='orange-text'>email</span><span class='white-text'>%data%</span></li>";
-var HTMLtwitter = "<li class='flex-item'><span class='orange-text'>twitter</span><span class='white-text'>%data%</span></li>";
-var HTMLgithub = "<li class='flex-item'><span class='orange-text'>github</span><span class='white-text'>%data%</span></li>";
-var HTMLblog = "<li class='flex-item'><span class='orange-text'>blog</span><span class='white-text'>%data%</span></li>";
-var HTMLlocation = "<li class='flex-item'><span class='orange-text'>location</span><span class='white-text'>%data%</span></li>";
+var HTMLcontactGeneric = "<li class='flex-item'><span class='red-text'>%contact%</span><span class='white-text'>%data%</span></li>";
+var HTMLmobile = "<li class='flex-item'><span class='red-text'>mobile</span><span class='white-text'>%data%</span></li>";
+var HTMLemail = "<li class='flex-item'><span class='red-text'>email</span><span class='white-text'>%data%</span></li>";
+var HTMLtwitter = "<li class='flex-item'><span class='red-text'>twitter</span><span class='white-text'>%data%</span></li>";
+var HTMLgithub = "<li class='flex-item'><span class='red-text'>github</span><span class='white-text'>%data%</span></li>";
+var HTMLblog = "<li class='flex-item'><span class='red-text'>blog</span><span class='white-text'>%data%</span></li>";
+var HTMLlocation = "<li class='flex-item'><span class='red-text'>location</span><span class='white-text'>%data%</span></li>";
 
 var HTMLbioPic = "<img src='%data%' class='biopic'>";
 var HTMLWelcomeMsg = "<span class='welcome-message'>%data%</span>";
@@ -111,7 +111,15 @@ function initializeMap() {
   var locations;        
 
   var mapOptions = {
-    disableDefaultUI: true
+    disableDefaultUI: true,
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+    },
+    zoomControl: true,
+    zoomControlOptions: {
+      style: google.maps.ZoomControlStyle.SMALL
+    }
   };
 
   // This next line makes `map` a new Google Map JavaScript Object and attaches it to
@@ -127,23 +135,27 @@ function initializeMap() {
     
     // initializes an empty array
     var locations = [];
+    var location_title = [];
 
     // adds the single location property from bio to the locations array
     locations.push(bio.contacts.location);
+    location_title.push("Current Location");
     
     // iterates through school locations and appends each location to
     // the locations array
     for (var school in education.schools) {
       locations.push(education.schools[school].location);
+      location_title.push(education.schools[school].name);
     }
 
-    // iterates through work locations and appends each location to
+    // iterates through work locations and titles and appends each location to
     // the locations array
     for (var job in work.jobs) {
       locations.push(work.jobs[job].location);
+      location_title.push(work.jobs[job].title);
     }
-
-    return locations;
+    console.log(locations, location_title);
+    return [locations, location_title];
   }
 
   /*
@@ -151,7 +163,7 @@ function initializeMap() {
   placeData is the object returned from search results containing information
   about a single location.
   */
-  function createMapMarker(placeData) {
+  function createMapMarker(placeData, contentString) {
 
     // The next lines save location data from the search result object to local variables
     var lat = placeData.geometry.location.k;  // latitude from the place service
@@ -163,19 +175,23 @@ function initializeMap() {
     var marker = new google.maps.Marker({
       map: map,
       position: placeData.geometry.location,
-      title: name
+      title: name,
     });
     
     // infoWindows are the little helper windows that open when you click
     // or hover over a pin on a map. They usually contain more information
     // about a location.
+
+
+
     var infoWindow = new google.maps.InfoWindow({
-      content: name
+      content: (contentString || "Text missing") //testing  
     });
 
     // hmmmm, I wonder what this is about...
     google.maps.event.addListener(marker, 'click', function() {
       // your code goes here!
+      infoWindow.open(map, marker);
     });
 
     // this is where the pin actually gets added to the map.
@@ -201,8 +217,23 @@ function initializeMap() {
   pinPoster(locations) takes in the array of locations created by locationFinder()
   and fires off Google place searches for each location
   */
-  function pinPoster(locations) {
+  function pinPoster(locations, location_text) {
 
+    // text for pop-up window
+    var extractLocationString = locationFinder();
+
+    var contentString = '<div>'+
+      '<div>'+
+      '</div>'+
+      '<h2>Title</h2>'+
+      '<div>'+
+      '<p>This is the body seperated by + and ' +
+      '</p>'
+      '</div>'
+      '</div>';;
+    
+
+    
     // creates a Google place search service object. PlacesService does the work of
     // actually searching for location data.
     var service = new google.maps.places.PlacesService(map);
@@ -217,7 +248,14 @@ function initializeMap() {
 
       // Actually searches the Google Maps API for location data and runs the callback 
       // function with the search results after each search.
-      service.textSearch(request, callback);
+      
+      //service.textSearch(request, callback);
+      service.textSearch(request, function(results, status) {
+        if (status == google.maps.places.PlacesServiceStatus.OK) {       
+        createMapMarker(results[0], contentString)
+        }
+    });
+
     }
   }
 
@@ -225,7 +263,10 @@ function initializeMap() {
   window.mapBounds = new google.maps.LatLngBounds();
 
   // locations is an array of location strings returned from locationFinder()
-  locations = locationFinder();
+  //locations = locationFinder(); --> Original
+  var extractLocationsInfo = locationFinder();
+  var locations = extractLocationsInfo[0];
+  var location_text = extractLocationsInfo[1]; 
 
   // pinPoster(locations) creates pins on the map for each location in
   // the locations array
